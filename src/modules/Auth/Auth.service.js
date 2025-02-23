@@ -5,6 +5,7 @@ import { RoleTypes } from "../../utils/enumTypes.js";
 import { asyncHandeler } from "../../utils/error/index.js";
 import { COMPARE } from "../../utils/Hash/compare.js";
 import { C_TOKEN } from "../../utils/token/creatToken.js";
+import { OTPtypes } from "../../utils/enumTypes.js";
 
 // ------------------ signUp ------------------------------
 export const signUp = asyncHandeler(async (req, res, next) => {
@@ -39,14 +40,18 @@ export const signUp = asyncHandeler(async (req, res, next) => {
 // ------------------ confirmOTP ------------------------------
 export const confirmOTP = asyncHandeler(async (req, res, next) => {
   const { email, code } = req.body;
-  const ChekUer = await UserModel.findOne({
-    email,
-    "OTP.expiresIn": { $gt: new Date() },
-  });
-  if (!ChekUer) {
-    return next(
-      new Error("Email is not found or code is expiresIn", { cause: 400 })
-    );
+  const checkUser = await UserModel.findOne({ email });
+  if (!checkUser) {
+    return next(new Error("Email not found", { cause: 400 }));
+  }
+  
+  const validOTP = checkUser.OTP.find(otp => 
+    otp.type === OTPtypes.C_email && 
+    new Date(otp.expiresIn) > new Date()
+  );
+  
+  if (!validOTP) {
+    return next(new Error("OTP has expired", { cause: 400 }));
   }
   const otpEntry = ChekUer.OTP.find((otp) => otp.code);
   if (!otpEntry) {
@@ -55,6 +60,7 @@ export const confirmOTP = asyncHandeler(async (req, res, next) => {
   const CompareOTP = await COMPARE({ key: code, keyhashed: otpEntry.code });
   if (!CompareOTP) {
     return next(new Error("code is not match", { cause: 400 }));
+
   }
   const user = await UserModel.findOneAndUpdate(
     { email },
