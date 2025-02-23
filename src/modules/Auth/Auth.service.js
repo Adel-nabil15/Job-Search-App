@@ -53,7 +53,7 @@ export const confirmOTP = asyncHandeler(async (req, res, next) => {
   if (!validOTP) {
     return next(new Error("OTP has expired", { cause: 400 }));
   }
-  const otpEntry = ChekUer.OTP.find((otp) => otp.code);
+  const otpEntry = checkUser.OTP.find((otp) => otp.code);
   if (!otpEntry) {
     return next(new Error("OTP is invalid", { cause: 400 }));
   }
