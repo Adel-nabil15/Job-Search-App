@@ -24,6 +24,7 @@ export const GenderTypes = {
   FEMALE: "Female",
 };
 
+// ------- FileSchema -------
 export const FileSchema = new mongoose.Schema({
   secure_url: String,
   public_id: String,

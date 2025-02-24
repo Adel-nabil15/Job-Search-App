@@ -3,9 +3,10 @@ import cloudinary from "../../utils/cloudnairy/index.js";
 import { eventEmiteer } from "../../utils/email/index.js";
 import { RoleTypes } from "../../utils/enumTypes.js";
 import { asyncHandeler } from "../../utils/error/index.js";
-import { COMPARE } from "../../utils/Hash/compare.js";
 import { C_TOKEN } from "../../utils/token/creatToken.js";
 import { OTPtypes } from "../../utils/enumTypes.js";
+import { V_TOKEN } from "../../utils/token/verifyToken.js";
+import COMPARE from "../../utils/Hash/compare.js";
 
 // ------------------ signUp ------------------------------
 export const signUp = asyncHandeler(async (req, res, next) => {
@@ -14,13 +15,6 @@ export const signUp = asyncHandeler(async (req, res, next) => {
   if (await UserModel.findOne({ email })) {
     return next(new Error("Email already Exist ", { cause: 400 }));
   }
-  // upload pic
-  if (!req.file) {
-    return next(new Error("i nead a profilePic", { cause: 400 }));
-  }
-  const { public_id, secure_url } = await cloudinary.uploader.upload(
-    req.file.path
-  );
   // creat user
   const user = await UserModel.create({
     firstName,
@@ -30,7 +24,6 @@ export const signUp = asyncHandeler(async (req, res, next) => {
     mobileNumber,
     gender,
     password,
-    profilePic: { public_id, secure_url },
   });
   // send otp
   eventEmiteer.emit("SendOTP", { email });
@@ -44,12 +37,12 @@ export const confirmOTP = asyncHandeler(async (req, res, next) => {
   if (!checkUser) {
     return next(new Error("Email not found", { cause: 400 }));
   }
-  
-  const validOTP = checkUser.OTP.find(otp => 
-    otp.type === OTPtypes.C_email && 
-    new Date(otp.expiresIn) > new Date()
+
+  const validOTP = checkUser.OTP.find(
+    (otp) =>
+      otp.type === OTPtypes.C_email && new Date(otp.expiresIn) > new Date()
   );
-  
+
   if (!validOTP) {
     return next(new Error("OTP has expired", { cause: 400 }));
   }
@@ -60,7 +53,6 @@ export const confirmOTP = asyncHandeler(async (req, res, next) => {
   const CompareOTP = await COMPARE({ key: code, keyhashed: otpEntry.code });
   if (!CompareOTP) {
     return next(new Error("code is not match", { cause: 400 }));
-
   }
   const user = await UserModel.findOneAndUpdate(
     { email },
@@ -74,10 +66,10 @@ export const confirmOTP = asyncHandeler(async (req, res, next) => {
 // ------------------ signIn ------------------------------
 export const signIn = asyncHandeler(async (req, res, next) => {
   const { email, password } = req.body;
-  const user = await UserModel.findOne({ email, isConfirmed: true, so });
+  const user = await UserModel.findOne({ email, isConfirmed: true ,FreazUser :false });
   if (!user) {
     return next(
-      new Error("sorry this email is not exist or not confirmed", {
+      new Error("sorry this email is not exist or not confirmed or account is Delete", {
         cause: 400,
       })
     );
@@ -89,16 +81,16 @@ export const signIn = asyncHandeler(async (req, res, next) => {
     payload: { email },
     SECRIT_KEY:
       user.role == RoleTypes.USER
-        ? process.env.USER_SEKRIT_KEY
-        : process.env.ADMIN_SEKRIT_KEY,
-    option: { expiresIn: "1h" },
+        ? process.env.ACCESS_USER_KEY
+        : process.env.ACCESS_ADMIN_KEY,
+    option: { expiresIn: "1d" },
   });
   const Refresh_token = await C_TOKEN({
     payload: { email },
     SECRIT_KEY:
       user.role == RoleTypes.USER
-        ? process.env.USER_SEKRIT_KEY
-        : process.env.ADMIN_SEKRIT_KEY,
+        ? process.env.REFRESH_USER_KEY
+        : process.env.REFRESH_ADMIN_KEY,
     option: { expiresIn: "7d" },
   });
 
@@ -108,7 +100,73 @@ export const signIn = asyncHandeler(async (req, res, next) => {
 // ------------------ ForgetPassword ------------------------------
 export const ForgetPassword = asyncHandeler(async (req, res, next) => {
   const { email } = req.body;
-  
+  const user = await UserModel.findOne({ email });
+  if (!user) {
+    return next(
+      new Error("sorry this email is not exist or not confirmed", {
+        cause: 400,
+      })
+    );
+  }
+  eventEmiteer.emit("ForgetPassOTP", { email, id: user._id });
 
-  return res.status(200).json({ msg: "done", access_token, Refresh_token });
+  return res.status(200).json({ msg: "done", user });
+});
+
+// ------------------ ResetPassword ------------------------------
+export const ResetPassword = asyncHandeler(async (req, res, next) => {
+  const { email, code, newPassword } = req.body;
+  const user = await UserModel.findOne({ email });
+  const validOTP = user.OTP.find(
+    (otp) =>
+      otp.type === OTPtypes.F_password && new Date(otp.expiresIn) > new Date()
+  );
+  if (!validOTP) {
+    return next(
+      new Error("Sorry error in OTp type or otp is expiresIn", { cause: 400 })
+    );
+  }
+  const CompareCode = await COMPARE({ key: code, keyhashed: validOTP.code });
+  if (!CompareCode) {
+    return next(new Error("code is wrong", { cause: 400 }));
+  }
+  const newUser = await UserModel.findOneAndUpdate(
+    { email },
+    { password: newPassword ,changeCredentialTime : Date.now()},
+    { new: true }
+  );
+  newUser.save();
+  return res.status(200).json({ msg: "done", newUser });
+});
+
+// ------------------ RefreshToken ------------------------------
+export const RefreshToken = asyncHandeler(async (req, res, next) => {
+  const { authorization } = req.body;
+  const [prefex, token] = authorization.split(" ");
+  if (!prefex || !token) {
+    return next(new Error("Error in prefex or token", { cause: 400 }));
+  }
+  let TOKEN = undefined;
+  if (prefex == "Bearer") {
+    TOKEN = process.env.REFRESH_USER_KEY;
+  } else if (prefex == RoleTypes.ADMIN) {
+    TOKEN = process.env.REFRESH_ADMIN_KEY;
+  } else {
+    return next(new Error("error in prefex", { cause: 400 }));
+  }
+  const decoded = await V_TOKEN({ token, SECRIT_KEY: TOKEN });
+  if (!decoded?.email) {
+    return next(new Error("Error in token", { cause: 400 }));
+  }
+  const user = await UserModel.findOne({ email: decoded.email });
+  const access_token = await C_TOKEN({
+    payload: { email:decoded.email },
+    SECRIT_KEY:
+      user.role == RoleTypes.USER
+        ? process.env.ACCESS_USER_KEY
+        : process.env.ACCESS_ADMIN_KEY,
+    option: { expiresIn: "1h" },
+  });
+
+  return res.status(200).json({ msg: "done", access_token });
 });

@@ -1,7 +1,7 @@
 import multer from "multer";
 
 export const fileFilter = {
-  images: ["image/png", "image/jpeg"],
+  images: ["image/png", "image/jpeg", "image/jpg"],
 };
 
 export const multerHost = (FileType = []) => {

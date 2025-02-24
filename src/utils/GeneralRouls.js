@@ -13,4 +13,16 @@ export const GeneralRouls = {
   DOB: joi.date().iso().max("now").custom(ConfirmDOB, "Age Validation"),
   email: joi.string().email({  tlds: { allow: true }, minDomainSegments: 1, maxDomainSegments: 2}),
   password: joi.string().regex(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/),
+  Headers: joi.object({
+    authorization: joi.string().required(),
+    host: joi.string(),
+    "Cache-Control": joi.string(),
+    "Postman-Token": joi.string(),
+    "User-Agent": joi.string(),
+    Accept: joi.string(),
+    "Accept-Encoding": joi.string(),
+    Connection: joi.string(),
+    "Content-Type": joi.string(),
+    "Content-Length": joi.string(),
+  }),
 };

@@ -12,6 +12,5 @@ export const signupValidation = {
     DOB:GeneralRouls.DOB.required(),
     mobileNumber:joi.string().required(),
     gender:joi.string().valid(GenderTypes.MALE,GenderTypes.FEMALE).required()
-  }),
-  file:joi.object().required()
+  }), 
 };

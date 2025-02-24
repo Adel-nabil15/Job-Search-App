@@ -8,7 +8,9 @@ import {
 } from "../../utils/enumTypes.js";
 import { HASH } from "../../utils/Hash/hach.js";
 import { ENCRYPT } from "../../utils/Crypto/encrypt.js";
+import { DECRYPT } from "../../utils/Crypto/decrypt.js";
 
+// ------------ UserSchema ------------
 const UserSchema = new mongoose.Schema(
   {
     firstName: {
@@ -61,16 +63,17 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
     deletedAt: Date,
+    FreazUser: {
+      type: Boolean,
+      default: false,
+    },
     bannedAt: Date,
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
     changeCredentialTime: Date,
-    profilePic: {
-      public_id: String,
-      secure_url: String,
-    },
+    profilePic: FileSchema,
     coverPic: FileSchema,
     OTP: [
       {
@@ -82,16 +85,33 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true, toJSON: { virtuals: true } }
 );
+
+// -------------- userName virtial ---------------------------------
 UserSchema.virtual("username").get(function () {
-  return `${this.firstName} ${this.lastName}`;
+  return `${this.firstName || ""} ${this.lastName || ""}`.trim();
 });
 
+// -------------- hashPasssword by Hooks ----------------------------
 UserSchema.pre("save", async function async(next) {
   if (this.password) {
     this.password = await HASH({ key: this.password, saltOrRounds: 8 });
   }
   next();
 });
+
+// -------------- decrypt mobileNumber by Hooks ----------------------
+UserSchema.post("findOne", async function (doc, next) {
+  if (!doc) return next();
+  if (doc.mobileNumber) {
+    doc.mobileNumber = await DECRYPT({
+      cipherKey: doc.mobileNumber,
+      SekretKey: process.env.PHONE_SEKRIT,
+    });
+  }
+  next();
+});
+
+// -------------- encrypt tmobileNumber by Hooks ----------------------
 UserSchema.pre("save", async function async(next) {
   if (this.mobileNumber) {
     this.mobileNumber = await ENCRYPT({
@@ -102,5 +122,6 @@ UserSchema.pre("save", async function async(next) {
   next();
 });
 
+// ------------ UserModel ------------
 const UserModel = mongoose.model("User", UserSchema);
 export default UserModel;
