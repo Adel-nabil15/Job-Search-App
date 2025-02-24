@@ -12,6 +12,6 @@ export const Validation = (model) => {
     if (ErrorResult.length > 0) {
       return res.json({ msg: "there is error ", error: ErrorResult });
     }
-    next();
+    next(); 
   };
 };
