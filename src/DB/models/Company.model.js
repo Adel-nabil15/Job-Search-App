@@ -52,7 +52,7 @@ const CompanySchema = new mongoose.Schema(
       type : Boolean,
       default :false
     },
-    legalAttachment: FileSchema,
+    legalAttachment: FileSchema, 
     approvedByAdmin: {
       type: Boolean,
       default: false,

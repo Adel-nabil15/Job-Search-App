@@ -12,7 +12,10 @@ import {
 } from "./company.service.js";
 import { Authentication } from "../../middleware/Authentcationn.js";
 import { fileFilter, multerHost } from "../../middleware/multer.js";
-const CompanyRouter = Router();
+import JobRouter from "../Job/job.controller.js";
+const CompanyRouter = Router({mergeParams : true});
+CompanyRouter.use("/:companyId",JobRouter)
+CompanyRouter.use("/", JobRouter);
 
 CompanyRouter.post("/AddCompany", Authentication, AddCompany);
 CompanyRouter.patch("/UpdateCompny/:companyId", Authentication, UpdateCompny);

@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const JobSchema = new mongoose.Schema(
-  {
+  { 
     jobTitle: {
       type: String,
       required: true,
@@ -50,12 +50,14 @@ const JobSchema = new mongoose.Schema(
     },
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Company",
+      ref: "companys",
       required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true , toJSON : {virtuals:true} }
 );
+
 
 const JobModel = mongoose.model("Job", JobSchema);
 export default JobModel;
+ 

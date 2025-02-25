@@ -14,6 +14,7 @@ export const AddCompany = asyncHandeler(async (req, res, next) => {
     address,
     numberOfEmployees,
     companyEmail,
+    HRs
   } = req.body;
   // Check if email of company exist Before
   if (await UserModel.findOne({ email: companyEmail })) {
@@ -31,6 +32,7 @@ export const AddCompany = asyncHandeler(async (req, res, next) => {
     address,
     numberOfEmployees,
     companyEmail,
+    HRs,
     CreatedBy: req.user._id,
   });
   res.status(200).json({ msg: "done", company });
