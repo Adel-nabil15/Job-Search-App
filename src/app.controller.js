@@ -1,5 +1,6 @@
 import DBC from "./DB/DBC.js";
 import AuthRouter from "./modules/Auth/Auth.controller.js";
+import CompanyRouter from "./modules/Company/company.controller.js";
 import UserRouter from "./modules/users/user.controller.js";
 import { globalErrorHandel } from "./utils/error/index.js";
 import scheduleOTPCleanup from "./utils/node-corn/index.js";
@@ -9,11 +10,12 @@ const bootstrapp = (express, app) => {
   DBC();
   app.use("/Auth", AuthRouter);
   app.use("/users", UserRouter);
+  app.use("/Company", CompanyRouter);
   app.use(globalErrorHandel);
-  scheduleOTPCleanup()
+  scheduleOTPCleanup();
 
   app.use("*", (req, res, next) => {
     res.status(400).json(`Url is wrong `);
   });
 };
-export default bootstrapp; 
+export default bootstrapp;

@@ -6,7 +6,7 @@ const CompanySchema = new mongoose.Schema(
     companyName: {
       type: String,
       unique: true,
-      required: true, 
+      required: true,
     },
     description: {
       type: String,
@@ -32,25 +32,25 @@ const CompanySchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
     },
     CreatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
     Logo: FileSchema,
+    CoverPic : FileSchema,
     HRs: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
     ],
-    bannedAt: {
-      type: Date,
-      default: null,
-    },
-    deletedAt: {
-      type: Date,
-      default: null,
+    bannedAt: Date,
+    deletedAt: Date,
+    FreazeCompany:{
+      type : Boolean,
+      default :false
     },
     legalAttachment: FileSchema,
     approvedByAdmin: {
@@ -58,8 +58,14 @@ const CompanySchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true , toJSON : {virtuals : true} }
 );
 
-const CompanyModel = mongoose.model("Company", CompanySchema);
+CompanySchema.virtual("Jobs",{
+  ref:"Job",
+  localField:"_id",
+  foreignField:"companyId"
+})
+
+const CompanyModel = mongoose.model("companys", CompanySchema);
 export default CompanyModel;
